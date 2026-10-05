@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { dbQuery, getPool } from "./db";
+import type { AdminTier } from "./rbac";
 
 type Role =
   | "USER"
@@ -16,6 +17,7 @@ type User = {
   passwordHash: string;
   role: Role;
   status: string;
+  adminTier?: AdminTier;
 };
 
 const memoryUsers = new Map<string, User>();
@@ -48,6 +50,7 @@ export async function seed() {
         passwordHash: p,
         role: "SUPER_ADMIN",
         status: "ACTIVE",
+        adminTier: "MASTER",
       });
     }
     return;
@@ -102,10 +105,10 @@ export async function register(name: string, email: string, password: string) {
 export async function login(email: string, password: string) {
   email = normalizeEmail(email);
   if (getPool()) {
-    const result = await dbQuery<User>(
-      'SELECT id, full_name AS name, email, password_hash AS "passwordHash", role, status FROM users WHERE email=$1 LIMIT 1',
-      [email]
-    );
+  const result = await dbQuery<User>(
+    'SELECT u.id, u.full_name AS name, u.email, u.password_hash AS "passwordHash", u.role, u.status, ap.admin_tier AS "adminTier" FROM users u LEFT JOIN admin_profiles ap ON ap.user_id = u.id AND ap.active = true WHERE u.email = $1 LIMIT 1',
+  [email]
+  );
     const user = result.rows[0];
     if (
       !user ||
@@ -142,10 +145,10 @@ async function createSession(user: User) {
 export async function getSession(id: string | undefined) {
   if (!id) return null;
   if (getPool()) {
-    const result = await dbQuery<User>(
-      'SELECT u.id, u.full_name AS name, u.email, u.password_hash AS "passwordHash", u.role, u.status FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() LIMIT 1',
-      [hash(id)]
-    );
+  const result = await dbQuery<User>(
+    'SELECT u.id, u.full_name AS name, u.email, u.password_hash AS "passwordHash", u.role, u.status, ap.admin_tier AS "adminTier" FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN admin_profiles ap ON ap.user_id = u.id AND ap.active = true WHERE s.token_hash = $1 AND s.expires_at > now() LIMIT 1',
+    [hash(id)]
+  );
     return result.rows[0] || null;
   }
   const s = memorySessions.get(id);
@@ -170,6 +173,7 @@ function publicUser(user: User) {
     email: user.email,
     role: user.role,
     status: user.status,
+    adminTier: user.adminTier,
   };
 }
 

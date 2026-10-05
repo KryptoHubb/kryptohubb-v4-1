@@ -5,6 +5,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import {
+  hasPermission,
+  isAdminTier,
+  type Permission,
+} from "./rbac";
+import {
   seed,
   register,
   login,
@@ -43,14 +48,25 @@ const requireUser = async (req: express.Request, res: express.Response) => {
   }
   return user;
 };
-const requireAdmin = async (req: express.Request, res: express.Response) => {
-  const user = await requireUser(req, res);
-  if (!user) return null;
-  if (!["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-    res.status(403).json({ error: "Admin access required" });
-    return null;
-  }
-  return user;
+const requirePermission = async (
+  req: express.Request,
+  res: express.Response,
+  permission: Permission
+) => {
+  const user = await requireUser(req, res);
+  if (!user) return null;
+
+  if (!user.adminTier || !isAdminTier(user.adminTier)) {
+    res.status(403).json({ error: "Admin access required" });
+    return null;
+  }
+
+  if (!hasPermission(user.adminTier, permission)) {
+    res.status(403).json({ error: "Insufficient permissions" });
+    return null;
+  }
+
+  return user;
 };
 
 app.get("/api/health", async (_req, res) =>
@@ -77,7 +93,7 @@ app.post("/api/auth/register", async (req, res) => {
       .json({
         error:
           "Name, valid email and an 8–128 character password are required.",
-      });
+     });
   try {
     const result = await register(
       parsed.data.name,
@@ -129,17 +145,22 @@ app.get("/api/me", async (req, res) => {
     email: user.email,
     role: user.role,
     status: user.status,
+    adminTier: user.adminTier,
   });
 });
 app.get("/api/admin/summary", async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-  res.json(await counts());
+  const user = await requirePermission(
+    req,
+    res,
+    "admin.dashboard.view"
+  );
+  if (!user) return;
+  res.json(await counts());
 });
 app.get("/api/admin/users", async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-  res.json(await listUsers(Math.min(Number(req.query.limit || 50), 200)));
+  const user = await requirePermission(req, res, "users.view");
+  if (!user) return;
+  res.json(await listUsers(Math.min(Number(req.query.limit || 50), 200)));
 });
 
 seed().catch(err => {
