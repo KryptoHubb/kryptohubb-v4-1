@@ -21,7 +21,7 @@ export default function Login() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Login failed");
       navigate(
-        data.user.role === "ADMIN" || data.user.role === "SUPER_ADMIN"
+        !!data.user.adminTier
           ? "/admin"
           : "/app"
       );

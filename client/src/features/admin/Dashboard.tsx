@@ -23,7 +23,7 @@ export default function Admin() {
         nav("/login");
         return;
       }
-      if (!["ADMIN", "SUPER_ADMIN"].includes(current.role)) {
+      if (!current.adminTier) {
         nav("/app");
         return;
       }

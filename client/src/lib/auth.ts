@@ -4,6 +4,7 @@ export type SessionUser = {
   email: string;
   role: string;
   status: string;
+  adminTier?: "MASTER" | "OPERATIONS" | "SUPPORT";
 };
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
