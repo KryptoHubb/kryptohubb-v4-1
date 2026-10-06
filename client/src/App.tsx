@@ -9,6 +9,7 @@ import Register from "./features/auth/Register";
 import Workspace from "./features/user/Workspace";
 import AdminDashboard from "./features/admin/Dashboard";
 import AdminUsers from "./features/admin/Users";
+import AdminGuard from "./features/admin/AdminGuard";
 import NotFound from "./pages/NotFound";
 function Router() {
   return (
@@ -18,8 +19,8 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/app/:rest*" component={Workspace} />
       <Route path="/app" component={Workspace} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/users">{() => <AdminGuard><AdminUsers /></AdminGuard>}</Route>
+      <Route path="/admin">{() => <AdminGuard><AdminDashboard /></AdminGuard>}</Route>
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
