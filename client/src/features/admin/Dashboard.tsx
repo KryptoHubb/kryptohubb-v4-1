@@ -63,27 +63,96 @@ export default function Admin() {
           </p>
         </div>
         <nav className="mt-6 space-y-1">
-          {[
-            "Dashboard",
-            "Users",
-            "KYC",
-            "Deposits",
-            "Withdrawals",
-            "Trades",
-            "Assets",
-            "Support",
-            "Audit logs",
-            "Settings",
-          ].map((x, i) => (
-            <a
-              key={x}
-              href={i === 1 ? "/admin/users" : "#"}
-              className={`block rounded-lg px-3 py-2.5 text-sm ${!i ? "bg-[#d5ff38] text-[#10120f] font-semibold" : "text-[#89917f] hover:bg-white/5 hover:text-white"}`}
-            >
-              {x}
-            </a>
-          ))}
-        </nav>
+  {[
+    {
+      label: "Dashboard",
+      href: "/admin",
+      permission: "admin.dashboard.view",
+    },
+    {
+      label: "Users",
+      href: "/admin/users",
+      permission: "users.view",
+    },
+    {
+      label: "KYC",
+      href: "#",
+      permission: "kyc.view",
+    },
+    {
+      label: "Deposits",
+      href: "#",
+      permission: "transactions.view",
+    },
+    {
+      label: "Withdrawals",
+      href: "#",
+      permission: "transactions.view",
+    },
+    {
+      label: "Trades",
+      href: "#",
+      permission: "transactions.view",
+    },
+    {
+      label: "Assets",
+      href: "#",
+      permission: "financial.config.view",
+    },
+    {
+      label: "Support",
+      href: "#",
+      permission: "support.view",
+    },
+    {
+      label: "Audit logs",
+      href: "#",
+      permission: "audit.view",
+    },
+    {
+      label: "Settings",
+      href: "#",
+      permission: "system.manage",
+    },
+  ]
+    .filter(item => {
+      const permissions = {
+        MASTER: true,
+        OPERATIONS: [
+          "admin.dashboard.view",
+          "users.view",
+          "kyc.view",
+          "transactions.view",
+          "support.view",
+          "financial.config.view",
+          "audit.view",
+        ],
+        SUPPORT: [
+          "admin.dashboard.view",
+          "users.view",
+          "kyc.view",
+          "transactions.view",
+          "support.view",
+        ],
+      } as const;
+
+      const allowed = permissions[user.adminTier!];
+      return allowed === true || allowed.includes(item.permission as never);
+    })
+    .map(item => (
+      <a
+        key={item.label}
+        href={item.href}
+        className={`block rounded-lg px-3 py-2.5 text-sm ${
+          item.label === "Dashboard"
+            ? "bg-[#d5ff38] text-[#10120f] font-semibold"
+            : "text-[#89917f] hover:bg-white/5 hover:text-white"
+        }`}
+      >
+        {item.label}
+      </a>
+    ))}
+</nav>
         <button
           onClick={logoutNow}
           className="absolute bottom-5 left-5 flex items-center gap-2 text-sm text-[#89917f]"
